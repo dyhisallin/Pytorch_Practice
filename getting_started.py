@@ -37,3 +37,11 @@ class Net(nn.Module):
 if __name__ == '__main__':
     net = Net()
     print(net)
+    input = torch.randn(1, 1, 32, 32)
+    output = net(input)
+    target = torch.randn(10)
+    target = target.view(1, -1)
+    criterion = nn.MSELoss()
+
+    loss = criterion(output, target)
+    print(loss)
