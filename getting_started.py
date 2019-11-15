@@ -34,14 +34,26 @@ class Net(nn.Module):
             num_features *= s
         return num_features
 
+
 if __name__ == '__main__':
     net = Net()
     print(net)
     input = torch.randn(1, 1, 32, 32)
-    output = net(input)
     target = torch.randn(10)
     target = target.view(1, -1)
     criterion = nn.MSELoss()
 
-    loss = criterion(output, target)
-    print(loss)
+    import torch.optim as optim
+
+    optimizer = optim.SGD(net.parameters(), lr=0.01)
+
+    # in training loop:
+    optimizer.zero_grad()
+    print('conv1.bias.grad before backward')
+    print(net.conv1.bias.grad)
+    output = net(input)
+    loss = criterion(output, target=target)
+    loss.backward()
+    optimizer.step()
+    print('conv1.bias.grad after backward')
+    print(net.conv1.bias.grad)
