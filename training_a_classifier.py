@@ -1,5 +1,5 @@
 import torch
-import torch.utils.data as Data
+from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
 
@@ -9,13 +9,14 @@ transform = transforms.Compose(
 )
 
 train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-train_loader = Data.DataLoader(train_set, batch_size=4, shuffle=True, num_workers=2)
+train_loader = DataLoader(train_set, batch_size=4, shuffle=True, num_workers=0)
 
 test_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-test_loader = Data.DataLoader(dataset=test_set, batch_size=4, shuffle=True, num_workers=2)
+test_loader = DataLoader(dataset=test_set, batch_size=4, shuffle=True, num_workers=0)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
+
 
 # show some images
 import matplotlib.pyplot as plt
@@ -32,16 +33,16 @@ dataiter = iter(train_loader)
 images, labels = dataiter.next()
 
 imshow(torchvision.utils.make_grid(images))
-print(''.join('%5f' % classes[labels[j]] for j in range(4)))
+print(''.join('%5s' % classes[labels[j]] for j in range(4)))
 
 # define the CNN
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-class CNN(nn.Module):
+class Net(nn.Module):
     def __init__(self):
-        super(CNN, self).__init__()
+        super(Net, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=6, kernel_size=5)
         self.pool = nn.MaxPool2d(kernel_size=(2, 2))
         self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5)
@@ -51,14 +52,14 @@ class CNN(nn.Module):
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.rule(self.conv2(x)))
+        x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 16*5*5)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
 
-net = CNN()
+net = Net()
 
 # define the loss function and optimizer
 import torch.optim as optim
@@ -67,7 +68,46 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 for epoch in range(2):
-    
+    running_loss = 0.0
+    for i, data in enumerate(train_loader, 0):
+        inputs, labels = data
+        optimizer.zero_grad()
+        outputs = net(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+        if i % 2000 == 1999:
+            # print every 2000 mini-batches
+            print('[epoch: %d, num: %5d] loss: %3f' %
+                  (epoch + 1, i + 1, running_loss/2000))
+            running_loss = 0.0
+
+print('Finished Training')
+
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+
+# imshow(torchvision.utils.make_grid(images))
+# print(' '.join('%5s '% classes[labels[j]] for j in range(4)))
+
+outputs = net(images)
 
 
+_, predicted = torch.max(outputs, 1)
+print('Predicted: ', ' '.join('%5s '%classes[predicted[j]] for j in range(4)))
+
+# Look at how the network performs on the dataset
+correct = 0
+total = 0
+with torch.no_grad():
+    for data in test_loader:
+        images, laebls = data
+        outputs = net(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print('Accuracy of the network on the test images: %d %%' % (100*correct/total))
 
