@@ -1,3 +1,5 @@
+#%%
+# import the package and the dataset
 import torch
 from torch.utils.data import DataLoader
 import torchvision
@@ -17,7 +19,7 @@ test_loader = DataLoader(dataset=test_set, batch_size=4, shuffle=True, num_worke
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
-
+#%%
 # show some images
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,6 +37,8 @@ images, labels = dataiter.next()
 imshow(torchvision.utils.make_grid(images))
 print(''.join('%5s' % classes[labels[j]] for j in range(4)))
 
+
+#%%
 # define the CNN
 import torch.nn as nn
 import torch.nn.functional as F
@@ -61,16 +65,24 @@ class Net(nn.Module):
 
 net = Net()
 
+
+# define the device
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print(device)
+
+net.to(device)
+#%%
 # define the loss function and optimizer
+
 import torch.optim as optim
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-for epoch in range(2):
+for epoch in range(4):
     running_loss = 0.0
     for i, data in enumerate(train_loader, 0):
-        inputs, labels = data
+        inputs, labels = data[0].to(device), data[1].to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, labels)
@@ -86,11 +98,14 @@ for epoch in range(2):
 
 print('Finished Training')
 
+#%%
+# Look at how the network performs on the dataset
+
 dataiter = iter(test_loader)
 images, labels = dataiter.next()
 
-# imshow(torchvision.utils.make_grid(images))
-# print(' '.join('%5s '% classes[labels[j]] for j in range(4)))
+imshow(torchvision.utils.make_grid(images))
+print(' '.join('%5s '% classes[labels[j]] for j in range(4)))
 
 outputs = net(images)
 
@@ -98,12 +113,11 @@ outputs = net(images)
 _, predicted = torch.max(outputs, 1)
 print('Predicted: ', ' '.join('%5s '%classes[predicted[j]] for j in range(4)))
 
-# Look at how the network performs on the dataset
 correct = 0
 total = 0
 with torch.no_grad():
     for data in test_loader:
-        images, laebls = data
+        images, labels = data[0].to(device), data[1].to(device)
         outputs = net(images)
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
@@ -111,3 +125,7 @@ with torch.no_grad():
 
 print('Accuracy of the network on the test images: %d %%' % (100*correct/total))
 
+
+#%%
+# Look at the accuracy of 10 classes
+class_correct = list(0. for i in range(10))
