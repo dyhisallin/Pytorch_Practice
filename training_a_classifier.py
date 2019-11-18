@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
+import time
+
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -65,7 +67,7 @@ class Net(nn.Module):
 
 net = Net()
 
-
+start_training = time.time()
 # define the device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -97,7 +99,9 @@ for epoch in range(4):
             running_loss = 0.0
 
 print('Finished Training')
+finished_training = time.time()
 
+print('Time for Training: %5f' % (finished_training - start_training))
 #%%
 # Look at how the network performs on the dataset
 
@@ -107,11 +111,13 @@ images, labels = dataiter.next()
 imshow(torchvision.utils.make_grid(images))
 print(' '.join('%5s '% classes[labels[j]] for j in range(4)))
 
+images = images.to(device)
+
 outputs = net(images)
 
 
 _, predicted = torch.max(outputs, 1)
-print('Predicted: ', ' '.join('%5s '%classes[predicted[j]] for j in range(4)))
+print('Predicted: ', ' '.join('%5s ' % classes[predicted[j]] for j in range(4)))
 
 correct = 0
 total = 0
